@@ -23,6 +23,6 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().BoolP("no-color", "nc", false, "Disable TUI colors")
+	rootCmd.Flags().BoolP("no-color", "n", false, "Disable TUI colors")
 	rootCmd.Flags().BoolP("verbose", "v", false, "Enables debug logs (e.g., printing specific connection errors)")
 }

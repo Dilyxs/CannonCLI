@@ -4,9 +4,7 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -19,37 +17,21 @@ var verifyCmd = &cobra.Command{
 	Short: "See the Headers&&Body of a single request",
 	Long:  `Sends a single request using the provided flags and prints the full raw response (Headers + Body)`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) > 0 {
+		if len(args) > 1 {
 			fmt.Printf("only single link permittable!: %v", args)
 			return
 		}
 		link := strings.Join(args, "")
 		method, _ := cmd.PersistentFlags().GetString("method")
 		bodyfile, _ := cmd.PersistentFlags().GetString("body")
-		body := make(map[string]any)
-		if bodyfile != "" {
-			details, err := os.ReadFile(bodyfile)
-			if err != nil {
-				fmt.Printf("file does not exist!: %v or no body file provided!", bodyfile)
-			}
-			if err := json.Unmarshal(details, &body); err != nil {
-				fmt.Printf("file contains weird json, cannot decode!: %v", bodyfile)
-				return
-			}
-		}
-		r, latency, err := pkg.Fetch(method, link, "application/json", 2*time.Second, body)
+		receivedresponse, err := pkg.EvaluateFetching(method, link, bodyfile, 2*time.Second)
 		if err != nil {
-			fmt.Println("FAILED TO FETCH!!!")
+			fmt.Println(err)
 			return
-		}
-		response := make(map[string]any)
-		var IsOk bool
-		if err := json.NewDecoder(r.Body).Decode(&response); err != nil && r.StatusCode == 200 {
-			IsOk = true
 		}
 
 		message := fmt.Sprintf("target: %v\n method:%v\n body:%v\n Response Status: %v\n latency: %v\n Response:%v\n. verification:%v",
-			link, method, body, r.StatusCode, latency, response, IsOk)
+			receivedresponse.Link, receivedresponse.Method, receivedresponse.Datajson, receivedresponse.R.StatusCode, receivedresponse.Latency, receivedresponse.Response, receivedresponse.IsOk)
 		fmt.Println(message)
 	},
 }

@@ -29,7 +29,6 @@ var verifyCmd = &cobra.Command{
 			fmt.Println(err)
 			return
 		}
-
 		message := fmt.Sprintf("target: %v\n method:%v\n body:%v\n Response Status: %v\n latency: %v\n Response:%v\n. verification:%v",
 			receivedresponse.Link, receivedresponse.Method, receivedresponse.Datajson, receivedresponse.R.StatusCode, receivedresponse.Latency, receivedresponse.Response, receivedresponse.IsOk)
 		fmt.Println(message)

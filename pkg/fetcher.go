@@ -31,6 +31,9 @@ func Fetch(methodtype, givenurl, ContentType string, maxResponseTime time.Durati
 	if err != nil {
 		return nil, 0, err
 	}
+	if response.StatusCode >= 400 {
+		return response, 0, fmt.Errorf("response above 400: %v\n", response.StatusCode)
+	}
 	latency := responsetime.Sub(currenttime)
 	return response, latency, nil
 }

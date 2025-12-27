@@ -8,9 +8,9 @@ import (
 )
 
 type RequestDetails struct {
-	method    string
-	link      string
-	filepath  string
+	Method    string
+	Link      string
+	Filepath  string
 	TimeLimit time.Duration
 }
 type PossibleStatus string
@@ -32,7 +32,7 @@ func RequestWorker(wg *sync.WaitGroup, inputChan <-chan RequestDetails, outputch
 	localChanResponse := make(chan ResponseWithStatus, 1)
 	go func() {
 		for request := range localChan {
-			response, err := EvaluateFetching(request.method, request.link, request.filepath, request.TimeLimit)
+			response, err := EvaluateFetching(request.Method, request.Link, request.Filepath, request.TimeLimit)
 			ResponsesFilled := ResponseWithStatus{response, err}
 			localChanResponse <- ResponsesFilled
 		}
@@ -88,13 +88,15 @@ func RequestGenerator(wg *sync.WaitGroup, r RequestDetails, RequestPerSecond, Co
 		}
 	}()
 	ticker := time.NewTicker(1 * time.Second)
-	select {
-	case <-ctx.Done():
-		goodToProceedwithRequests <- false
-	case <-ticker.C:
-		goodToProceedwithRequests <- true
-	case <-done:
-		return
+	for {
+		select {
+		case <-ctx.Done():
+			goodToProceedwithRequests <- false
+		case <-ticker.C:
+			goodToProceedwithRequests <- true
+		case <-done:
+			return
+		}
 	}
 }
 
@@ -135,6 +137,7 @@ func RunAction(RequestPerSecond, CountTime int, r RequestDetails, workercount in
 	go HandleOutput(outputChan, CancelChan)
 	for <-CancelChan { // can be caused either by the end of HandleOutput OR by user sending one over!
 		cancel()
+		return
 	}
 
 	defer func() {

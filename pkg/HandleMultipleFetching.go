@@ -92,29 +92,27 @@ func RequestGenerator(r RequestDetails, RequestPerSecond, CountTime int,
 	}
 }
 
-func HandleOutput(wg *sync.WaitGroup, outputChan chan ResponseWithStatus, CancelChan chan<- bool) {
+func HandleOutput(wg *sync.WaitGroup, outputChan chan ResponseWithStatus, CancelChan chan<- bool, UserGivenChan chan<- ResponseWithStatus, endEndOfSequence chan<- EndOfSequence) {
 	// eventually one would assume that
 	defer wg.Done()
-	Succesfull := 0
-	Failed := 0
 	for r := range outputChan {
-		// I don't know for now print it !
-		if r.IsOk {
-			Succesfull += 1
-		} else if !r.IsOk || r.Error != nil {
-			Failed += 1
-		}
+		UserGivenChan <- r
 	}
 	// one that is done, let user know this is the same as user just cancelling
 	CancelChan <- true
+	endEndOfSequence <- "finished"
+	close(endEndOfSequence)
+	close(UserGivenChan)
 }
 
-func RunAction(RequestPerSecond, CountTime int, r RequestDetails, workercount int, CancelChan chan bool) {
+type EndOfSequence string
+
+// in this case CancelChan is if the user wants to Cancel the Process, UserGivenChan is Where the output is returned to the User and EndOfSequence lets the user know that the function has officilay finished
+func RunAction(RequestPerSecond, CountTime int, r RequestDetails, workercount int, CancelChan chan bool, UserGivenChan chan ResponseWithStatus, EndOfSequence chan EndOfSequence) {
 	totalCount := TotalRequest{0, sync.Mutex{}}
 	var RequestWorkerWaitGroup sync.WaitGroup
 	var ProcessOutputWaitGroup sync.WaitGroup
 	defer func() {
-		close(CancelChan)
 		fmt.Printf("total count is %v\n", totalCount.count)
 	}()
 	inputChan := make(chan RequestDetails, workercount)
@@ -131,7 +129,7 @@ func RunAction(RequestPerSecond, CountTime int, r RequestDetails, workercount in
 	}()
 	ProcessFinishedChan := make(chan bool, 1)
 	ProcessOutputWaitGroup.Add(1)
-	go HandleOutput(&ProcessOutputWaitGroup, outputChan, ProcessFinishedChan)
+	go HandleOutput(&ProcessOutputWaitGroup, outputChan, ProcessFinishedChan, UserGivenChan, EndOfSequence)
 	select {
 	case <-CancelChan: // user choose to end it
 		fmt.Println("user choose to end it")

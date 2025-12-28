@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"time"
 )
 
 type Data struct {
@@ -13,6 +14,7 @@ type Data struct {
 }
 
 func ReturnData(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(500 * time.Millisecond)
 	// make 20 percent of Response incorrect
 	w.Header().Set("Content-type", "application/json")
 	n := rand.Int31n(5)

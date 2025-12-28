@@ -13,5 +13,9 @@ func main() {
 	// cmd.Execute()
 	cancel := make(chan bool)
 	r := pkg.RequestDetails{"GET", "http://localhost:8080", "", 2 * time.Second}
+	go func() {
+		time.Sleep(time.Millisecond * 2001)
+		cancel <- true
+	}()
 	pkg.RunAction(20, 4, r, 20, cancel)
 }

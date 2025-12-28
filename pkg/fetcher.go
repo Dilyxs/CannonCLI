@@ -72,6 +72,10 @@ type Response struct {
 	IsOk     bool
 }
 
+func (r *Response) String() string {
+	return fmt.Sprintf("Response: Link: %v, Method: %v, Datajson: %v, Latency: %v, Response: %v, IsOk: %v", r.Link, r.Method, r.Datajson, r.Latency, r.Response, r.IsOk)
+}
+
 func EvaluateFetching(method, link, filepathforJson string, TimeLimit time.Duration) (Response, error) {
 	datajson, err := ReadJSONFileData(filepathforJson)
 	if err != nil {

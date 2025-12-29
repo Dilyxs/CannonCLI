@@ -92,14 +92,14 @@ func RequestGenerator(r RequestDetails, RequestPerSecond, CountTime int,
 	}
 }
 
-func HandleOutput(wg *sync.WaitGroup, outputChan chan ResponseWithStatus, CancelChan chan<- bool, UserGivenChan chan<- ResponseWithStatus, endEndOfSequence chan<- EndOfSequence) {
+func HandleOutput(wg *sync.WaitGroup, outputChan chan ResponseWithStatus, ProcessFinishedChan chan<- bool, UserGivenChan chan<- ResponseWithStatus, endEndOfSequence chan<- EndOfSequence) {
 	// eventually one would assume that
 	defer wg.Done()
 	for r := range outputChan {
 		UserGivenChan <- r
 	}
 	// one that is done, let user know this is the same as user just cancelling
-	CancelChan <- true
+	ProcessFinishedChan <- true
 	endEndOfSequence <- "finished"
 	close(endEndOfSequence)
 	close(UserGivenChan)
@@ -112,9 +112,6 @@ func RunAction(RequestPerSecond, CountTime int, r RequestDetails, workercount in
 	totalCount := TotalRequest{0, sync.Mutex{}}
 	var RequestWorkerWaitGroup sync.WaitGroup
 	var ProcessOutputWaitGroup sync.WaitGroup
-	defer func() {
-		fmt.Printf("total count is %v\n", totalCount.count)
-	}()
 	inputChan := make(chan RequestDetails, workercount)
 	outputChan := make(chan ResponseWithStatus, 1)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -132,11 +129,9 @@ func RunAction(RequestPerSecond, CountTime int, r RequestDetails, workercount in
 	go HandleOutput(&ProcessOutputWaitGroup, outputChan, ProcessFinishedChan, UserGivenChan, EndOfSequence)
 	select {
 	case <-CancelChan: // user choose to end it
-		fmt.Println("user choose to end it")
 		cancel()
 		ProcessOutputWaitGroup.Wait()
 	case <-ProcessFinishedChan: // process ended by itself
-		fmt.Println("we ended it")
 		cancel()
 	}
 }

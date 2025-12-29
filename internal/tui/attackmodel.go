@@ -19,7 +19,8 @@ type AttackModel struct {
 	SuccessfulResponses int
 	EnOfListener        chan pkg.EndOfSequence
 }
-type SequnceFinished string
+
+const EndString pkg.EndOfSequence = "End"
 
 func (m AttackModel) ListenForIncomingMessages() tea.Cmd {
 	return func() tea.Msg {
@@ -27,7 +28,7 @@ func (m AttackModel) ListenForIncomingMessages() tea.Cmd {
 		if ok {
 			return res
 		}
-		return nil
+		return EndString
 	}
 }
 
@@ -37,35 +38,47 @@ func (m AttackModel) ListenForEnding() tea.Cmd {
 		if ok {
 			return res
 		}
-		return nil
+		return EndString
 	}
 }
 
 func InitModel(RequestPerSecond, HowManySecond, WorkersCount int, ReqDetails pkg.RequestDetails, CancelChan chan bool, OutputChan chan pkg.ResponseWithStatus) AttackModel {
 	return AttackModel{
-		RequestPerSecond: RequestPerSecond,
-		HowManySecond:    HowManySecond,
-		ReqDetails:       ReqDetails,
-		WorkersCount:     WorkersCount,
-		Cancel:           CancelChan,
-		ResponseChan:     OutputChan,
+		RequestPerSecond:    RequestPerSecond,
+		HowManySecond:       HowManySecond,
+		ReqDetails:          ReqDetails,
+		WorkersCount:        WorkersCount,
+		Cancel:              CancelChan,
+		ResponseChan:        OutputChan,
+		Results:             make([]pkg.ResponseWithStatus, 0),
+		FailedResponses:     0,
+		SuccessfulResponses: 0,
+		EnOfListener:        make(chan pkg.EndOfSequence, 2),
 	}
 }
 
+func (m AttackModel) StartAttack() {
+	pkg.RunAction(m.RequestPerSecond, m.HowManySecond, m.ReqDetails, m.WorkersCount, m.Cancel, m.ResponseChan, m.EnOfListener)
+}
+
 func (m AttackModel) Init() tea.Cmd {
-	return m.ListenForIncomingMessages()
+	go m.StartAttack()
+	return tea.Batch(
+		m.ListenForIncomingMessages(),
+		m.ListenForEnding(),
+	)
 }
 
 func (m AttackModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := message.(type) {
 	case pkg.ResponseWithStatus:
-		if msg.Error != nil && msg.IsOk {
+		if msg.Error == nil && msg.IsOk {
 			m.SuccessfulResponses += 1
 		} else {
 			m.FailedResponses += 1
 		}
 		m.Results = append(m.Results, msg)
-		return nil, m.ListenForIncomingMessages()
+		return m, m.ListenForIncomingMessages()
 	case pkg.EndOfSequence:
 		return m, tea.Quit
 	case tea.KeyMsg:

@@ -28,6 +28,15 @@ type ResponseWithStatus struct {
 	Error error
 }
 
+type CustomeErrors struct {
+	ErrorCode        int
+	ErrorDescription string
+}
+
+func (u CustomeErrors) Error() string {
+	return fmt.Sprintf("%d : %v\n", u.ErrorCode, u.ErrorDescription)
+}
+
 func (r *ResponseWithStatus) String() string {
 	return fmt.Sprintf("ResponseWithStatus: Response: %v, Error: %v", r.Response, r.Error)
 }
@@ -48,13 +57,13 @@ func RequestWorker(wg *sync.WaitGroup, inputChan <-chan RequestDetails, outputch
 				request.Link, request.Method,
 				make(map[string]any), nil,
 				0 * time.Second, make(map[string]any), false,
-			}, fmt.Errorf("user Cancelled")}
+			}, CustomeErrors{0, "UserCancelled"}}
 		case <-time.After(1 * time.Second):
 			outputchan <- ResponseWithStatus{Response{
 				request.Link, request.Method,
 				make(map[string]any), nil,
 				0 * time.Second, make(map[string]any), false,
-			}, fmt.Errorf("took Too Much Time")}
+			}, CustomeErrors{1, "Request Took too Long!"}}
 		case response := <-localchan:
 			outputchan <- response
 		}

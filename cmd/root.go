@@ -23,6 +23,8 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().BoolP("no-color", "n", false, "Disable TUI colors")
+	rootCmd.PersistentFlags().StringP("method", "m", "GET", "Define method for request")
+	rootCmd.PersistentFlags().StringP("body", "b", "", "Path to a local file (e.g., ./payload.json). Read this file once into memory at startup, then reuse the byte slice for every request. Do not read from disk on every loop.")
+	rootCmd.Flags().BoolP("no-color", "c", false, "Disable TUI colors")
 	rootCmd.Flags().BoolP("verbose", "v", false, "Enables debug logs (e.g., printing specific connection errors)")
 }
